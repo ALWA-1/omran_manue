@@ -4,7 +4,7 @@ import { CartProvider } from "./context/CartContext";
 import FeedbackModal from "./components/FeedbackModal";
 
 export const metadata: Metadata = {
-  title: "المنيو الإلكتروني",
+  title: "مطعم المملكة",
   description: "اطلب أشهى المأكولات الآن",
 };
 
