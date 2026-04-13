@@ -5,9 +5,11 @@ import React, { createContext, useContext, useState } from 'react';
 type CartItem = {
   id: number;
   name_ar: string;
+  name_en?: string;
   price: number;
   image_url: string;
   quantity: number;
+  [key: string]: any; // السماح بأي بيانات إضافية من قاعدة البيانات بدون مشاكل
 };
 
 type CartContextType = {
@@ -45,7 +47,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setCart((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // الإصلاح الجوهري هنا: حذف المنتج إذا وصلت الكمية لـ 0
   const updateQuantity = (id: number, amount: number) => {
     setCart((prev) => 
       prev.map((item) => 
