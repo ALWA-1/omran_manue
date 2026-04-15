@@ -53,6 +53,11 @@ export default function Home() {
   // --- حالات الـ PWA الخاصة بزر التثبيت ---
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [canInstall, setCanInstall] = useState(false);
+  
+  // --- [إضافة جديدة] حالات الـ PWA الخاصة بـ iOS ---
+  const [isIOS, setIsIOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [showIOSModal, setShowIOSModal] = useState(false);
   // ------------------------------------------
 
   const sectionRefs = useRef<{ [key: number]: HTMLElement | null }>({});
@@ -81,6 +86,20 @@ export default function Home() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  // --- [إضافة جديدة] اكتشاف أجهزة iOS وحالة التثبيت ---
+  useEffect(() => {
+    // 1. فحص هل الجهاز آيفون أو آيباد
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOS(isIosDevice);
+
+    // 2. فحص هل التطبيق مثبت بالفعل (Standalone)
+    const isStandAloneMatch = window.matchMedia('(display-mode: standalone)').matches;
+    const isiOSStandalone = (window.navigator as any).standalone === true;
+    setIsStandalone(isStandAloneMatch || isiOSStandalone);
+  }, []);
+  // ----------------------------------------------------
+
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
@@ -90,7 +109,6 @@ export default function Home() {
       setDeferredPrompt(null);
     }
   };
-  // ------------------------------------
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -237,10 +255,16 @@ export default function Home() {
 
         <div className="flex items-center gap-3 sm:gap-4 md:gap-6">
           
-          {/* 📱 زر تثبيت التطبيق PWA - يظهر فقط إذا كان متاحاً */}
-          {canInstall && (
+          {/* 📱 [تعديل] زر تثبيت التطبيق الموحد للجميع */}
+          {!isStandalone && (canInstall || isIOS) && (
             <button
-              onClick={handleInstallClick}
+              onClick={() => {
+                if (canInstall) {
+                  handleInstallClick(); // تشغيل الأندرويد
+                } else if (isIOS) {
+                  setShowIOSModal(true); // فتح مودال الآيفون
+                }
+              }}
               className="flex items-center gap-1.5 bg-[#C8102E] text-white px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold animate-pulse shadow-md hover:bg-[#A00D24] transition-colors"
             >
               <Download size={14} />
@@ -498,6 +522,85 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* --- [إضافة جديدة] المودال الخاص بإرشادات الآيفون --- */}
+      <AnimatePresence>
+        {showIOSModal && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setShowIOSModal(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }} 
+              animate={{ scale: 1, y: 0 }} 
+              exit={{ scale: 0.9, y: 20 }} 
+              className="bg-white rounded-[30px] p-6 w-full max-w-sm relative shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setShowIOSModal(false)} 
+                className="absolute top-4 right-4 bg-[#F2ECE4] text-[#84796B] hover:text-[#C8102E] p-2 rounded-full transition-colors"
+              >
+                <X size={20}/>
+              </button>
+              
+              <div className="text-center mb-6 mt-2">
+                <div className="w-16 h-16 bg-[#F2ECE4] text-[#C8102E] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                   <Download size={32} />
+                </div>
+                <h2 className="text-2xl font-black text-[#222222]">
+                  {isAr ? 'تثبيت التطبيق' : 'Install App'}
+                </h2>
+                <p className="text-[#84796B] text-sm font-medium mt-2">
+                  {isAr ? 'لتجربة أسرع وأفضل، قم بتثبيت التطبيق على هاتفك بخطوات بسيطة:' : 'For a better experience, install the app on your phone:'}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-4 relative">
+                <div className="absolute right-6 top-6 bottom-6 w-0.5 bg-[#E8E2D9] z-0 hidden md:block"></div>
+
+                <div className="flex items-center gap-4 relative z-10 bg-[#F2ECE4] p-4 rounded-2xl">
+                  <div className="w-10 h-10 shrink-0 bg-white border border-[#E8E2D9] rounded-full flex items-center justify-center shadow-sm">
+                    <Share2 size={20} className="text-[#222222]" />
+                  </div>
+                  <p className="text-[#222222] font-bold text-sm leading-snug">
+                    {isAr ? '1. اضغط على زر المشاركة أسفل المتصفح' : '1. Tap the Share button at the bottom'}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4 relative z-10 bg-[#F2ECE4] p-4 rounded-2xl">
+                  <div className="w-10 h-10 shrink-0 bg-white border border-[#E8E2D9] rounded-full flex items-center justify-center shadow-sm">
+                    <Plus size={22} className="text-[#222222]" />
+                  </div>
+                  <p className="text-[#222222] font-bold text-sm leading-snug">
+                    {isAr ? '2. مرر لأسفل واختر "إضافة للشاشة الرئيسية"' : '2. Scroll down and select "Add to Home Screen"'}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4 relative z-10 bg-[#F2ECE4] p-4 rounded-2xl">
+                  <div className="w-10 h-10 shrink-0 bg-[#C8102E] text-white rounded-full flex items-center justify-center shadow-md font-bold">
+                    {isAr ? 'إضافة' : 'Add'}
+                  </div>
+                  <p className="text-[#222222] font-bold text-sm leading-snug">
+                    {isAr ? '3. اضغط على زر "إضافة" في أعلى الشاشة' : '3. Tap "Add" at the top right'}
+                  </p>
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => setShowIOSModal(false)} 
+                className="w-full mt-6 py-3.5 bg-[#222222] hover:bg-black text-white rounded-xl font-bold text-[15px] shadow-md transition-colors"
+              >
+                {isAr ? 'حسناً، فهمت' : 'Got it'}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* -------------------------------------------------------- */}
 
       <CartDrawer lang={lang} currency={currentCurrency} />
 
