@@ -93,12 +93,44 @@ export default function CartDrawer({ lang = 'ar', currency = 'د.ب' }: CartDraw
                 grand_total: grandTotal
             };
 
+            // 1. الحفظ في قاعدة البيانات Supabase
             const { data, error } = await supabase.from('orders').insert([orderData]).select('id').single();
             if (error) throw error;
 
+            // 2. إظهار رسالة النجاح للعميل وتفريغ السلة
             setOrderId(data.id);
             setView('success');
             clearCart();
+
+            // 3. الإرسال إلى التليجرام في الخلفية
+            const botToken = "8274956633:AAHfNyZh72Zw1tETh4EU1A_lAdl_UyKLWKI";
+            const chatId = "-5074329301";
+
+            let msg = `👑 *طلب جديد - مطعم المملكة* (#${data.id})\n\n`;
+            msg += `👤 *العميل:* ${customerName}\n`;
+            msg += `📞 *الهاتف:* ${customerPhone || 'غير محدد'}\n`;
+            msg += `🏷️ *النوع:* ${orderType === 'delivery' ? 'توصيل 🛵' : 'صالة 🍽️'}\n`;
+            
+            if (orderType === 'delivery') {
+                msg += `📍 *العنوان:* ${address}\n`;
+            } else {
+                msg += `🪑 *الطاولة:* ${tableNumber}\n`;
+            }
+
+            msg += `\n🛒 *الوجبات:*\n`;
+            cart.forEach(item => {
+                msg += `• ${item.quantity}x ${isAr ? item.name_ar : item.name_en}\n`;
+            });
+
+            if (notes) msg += `\n📝 *ملاحظة:* ${notes}\n`;
+            msg += `\n💰 *الإجمالي:* ${formatPrice(grandTotal)}`;
+
+            fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'Markdown' })
+            }).catch(e => console.error("Telegram Error", e));
+
         } catch (error: any) {
             alert((isAr ? 'حدث خطأ: ' : 'Error: ') + error.message);
         } finally {
