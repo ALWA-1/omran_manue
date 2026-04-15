@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Globe, MapPin, Phone, LayoutGrid, List as ListIcon, 
   Loader2, MessageCircle, ShoppingBag, Plus, X, Share2, 
-  Minus, ArrowRight, Menu as MenuIcon, Star, Send, ShoppingCart
+  Minus, ArrowRight, Menu as MenuIcon, Star, Send, ShoppingCart, Download 
 } from 'lucide-react';
 import { useCart } from './context/CartContext';
 import CartDrawer from './components/CartDrawer'; 
@@ -50,6 +50,11 @@ export default function Home() {
   const [feedbackPhone, setFeedbackPhone] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
+  // --- حالات الـ PWA الخاصة بزر التثبيت ---
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [canInstall, setCanInstall] = useState(false);
+  // ------------------------------------------
+
   const sectionRefs = useRef<{ [key: number]: HTMLElement | null }>({});
   const categoryNavRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -62,6 +67,30 @@ export default function Home() {
   useEffect(() => {
     fetchAllData();
   }, []);
+
+  // --- مراقب حدث تثبيت التطبيق PWA ---
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setCanInstall(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setCanInstall(false);
+      setDeferredPrompt(null);
+    }
+  };
+  // ------------------------------------
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -207,6 +236,19 @@ export default function Home() {
         </nav>
 
         <div className="flex items-center gap-3 sm:gap-4 md:gap-6">
+          
+          {/* 📱 زر تثبيت التطبيق PWA - يظهر فقط إذا كان متاحاً */}
+          {canInstall && (
+            <button
+              onClick={handleInstallClick}
+              className="flex items-center gap-1.5 bg-[#C8102E] text-white px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold animate-pulse shadow-md hover:bg-[#A00D24] transition-colors"
+            >
+              <Download size={14} />
+              <span className="hidden sm:inline">{isAr ? 'تثبيت التطبيق' : 'Install App'}</span>
+              <span className="sm:hidden">{isAr ? 'تثبيت' : 'Install'}</span>
+            </button>
+          )}
+
           <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} className="font-bold text-[#84796B] hover:text-[#C8102E] text-[13px] sm:text-sm flex items-center gap-1">
             <Globe size={18} /> 
             <span>{lang === 'ar' ? 'EN' : 'عر'}</span>
@@ -246,7 +288,6 @@ export default function Home() {
 
       <div ref={menuRef}></div>
 
-      {/* الشريط الثابت (Sticky) مع الخلفية الزجاجية يعمل الآن بامتياز! */}
       <div className="sticky top-0 z-40 bg-[#F2ECE4]/70 backdrop-blur-xl pt-4 pb-2 border-b border-[#E8E2D9]/50 shadow-sm transition-all duration-300">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-start gap-4 overflow-x-auto px-4 pb-2 custom-scrollbar no-scrollbar" ref={categoryNavRef}>
