@@ -1,11 +1,22 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { CartProvider } from "./context/CartContext";
 import FeedbackModal from "./components/FeedbackModal";
+import PWAInstallBanner from "./components/PWAInstallBanner"; // استيراد المكون الجديد
+
+export const viewport: Viewport = {
+  themeColor: "#e11d48",
+};
 
 export const metadata: Metadata = {
-  title: "مطعم المملكة",
+  title: "المملكه مطعم",
   description: "اطلب أشهى المأكولات الآن",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "المملكة",
+  },
 };
 
 export default function RootLayout({
@@ -17,8 +28,10 @@ export default function RootLayout({
     <html lang="ar" dir="rtl">
       <body>
         <CartProvider>
+          {/* البانر الاحترافي للتثبيت يظهر هنا في أعلى الصفحة */}
+          <PWAInstallBanner />
+          
           {children}
-          {/* تركنا نافذة التقييم لتعمل في كامل الموقع، وتم حذف السلة المكررة من هنا */}
           <FeedbackModal />
         </CartProvider>
       </body>
